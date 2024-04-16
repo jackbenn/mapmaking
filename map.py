@@ -7,8 +7,10 @@ import cartopy.feature as cfeature
 from geopy.distance import geodesic
 from geopy.point import Point
 import numpy as np
+import logging
 from numpy import sin, cos, arccos, arctan2, radians, degrees
 
+logging.basicConfig(level=logging.INFO)
 
 def calculate_normal_vector(point1, point2):
     """Calculate normalized normal vector to great circle containing two points."""
@@ -108,22 +110,26 @@ if __name__ == "__main__":
         description="Generate a map from a long strip between two points.",
     )
 
+    # shrinking this (and zooming in) too much will cause
+    # the ocean not to display and the code to slow down
     parser.add_argument(
         "-b",
         "--border",
-        default="0.15",
+        default=0.20,
         type=float,
         help="border around great circle, as a fraction of the distance between points.",
     )
     args = parser.parse_args()
 
+    logging.info(f"{args.border=}")
     seattle = Point(47.6062, -122.3321)
     tokyo = Point(35.6895, 139.6917)
 
     highpoint = calculate_point_with_highest_latitude_point(seattle, tokyo)
+    logging.info(f"{highpoint=}")
+
     azimuth = calculate_azimuth(highpoint, seattle)
-    print(highpoint)
-    print(azimuth)
+    logging.info(f"{azimuth=}")
 
     projection = ccrs.ObliqueMercator(
         central_longitude=highpoint.longitude,
@@ -135,10 +141,11 @@ if __name__ == "__main__":
     fig = plt.figure(figsize=(20, 5))  # Adjust the figure size as needed
     ax = fig.add_subplot(1, 1, 1, projection=projection)
 
-    ax.add_feature(cfeature.OCEAN)
+    #ax.add_feature(cfeature.OCEAN)
     ax.add_feature(cfeature.LAND)
     ax.add_feature(cfeature.COASTLINE)
     ax.add_feature(cfeature.BORDERS, linestyle=":")
+
 
     ax.plot(
         [seattle.longitude, tokyo.longitude],
@@ -148,6 +155,7 @@ if __name__ == "__main__":
         marker="o",
         transform=ccrs.Geodetic(),
     )
+
     ax.scatter(
         [highpoint.longitude],
         [highpoint.latitude],
@@ -159,7 +167,6 @@ if __name__ == "__main__":
 
     ax.set_global()
 
-    border = 0.19
 
     left = calculate_position_on_great_circle(seattle, tokyo, -args.border)
     right = calculate_position_on_great_circle(seattle, tokyo, 1 + args.border)
